@@ -36,10 +36,21 @@ def get_base_url(url):
 	base_url = "{0.scheme}://{0.netloc}/".format(urlsplit(url))
 	return base_url
 
+def get_path_url(url):
+	return urlsplit(url).path
+
+def local_path_append(p1, p2):
+	if p1[-1:] == '/':
+		p1=p1[0:len(p1)-1]
+	return p1+p2
 
 def get_text_from_xpath_element(xpath_ele):
 	parsed_html = BeautifulSoup(xpath_ele.extract())
 	return _filter_out_pattern(parsed_html.get_text(), exclude_lists)
+
+
+#File IO part
+
 
 #s is an input string
 #exclude_lists is a list of pairs of symbol, like [('(', ')'), ('[', ']') ...etc ]

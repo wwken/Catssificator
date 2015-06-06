@@ -158,6 +158,12 @@ def remove_non_valid_chars(line):
 ##Date/time part ########################################
 def add_seconds_to_datetime(d, num_of_secs):
     return d + timedelta(seconds=int(num_of_secs))
+
+'''This will return the datetime object
+'''
+def get_time_now():
+    return datetime.now()
+
 def get_datetime():
     return strftime("%Y%m%d%H%M%S", gmtime())
 def convert_date_to_s(d, format='%Y%m%d'):
@@ -199,6 +205,10 @@ def get_file_name_from_path(path):
     head, tail = ntpath.split(path)
     return tail or ntpath.basename(head)
 
+def get_dir(path):
+    head, tail = ntpath.split(path)
+    return head
+
 def get_base(p):
     return join(abspath(dirname('__file__')), p)
 
@@ -216,9 +226,12 @@ def del_file(path):
         os.remove(path)
         log.info("File: %s removed!" % path)
 
-def ensure_dir_exists(dir_path):
+def ensure_dir_exists(dir_path, create_multiple=False):
     if not os.path.exists(dir_path):
-        os.mkdir(dir_path)
+        if create_multiple:
+            os.makedirs(dir_path)
+        else:
+            os.mkdir(dir_path)
         log.info("Dir: %s created!" % dir_path)
 
 def is_path_exist(p):
@@ -244,6 +257,9 @@ def real_lines(file_path, is_critical=False):
 def get_files_only_from_dir(dir_p):
     return [ f for f in listdir(dir_p) if isfile(join(dir_p,f)) ]
 
+def get_file_modified_time(p):
+     return time.ctime(os.path.getmtime(p))
+
 def read_contents_from_dir(dir_p):
     onlyfiles = get_files_only_from_dir(dir_p)
     contents = []
@@ -252,7 +268,26 @@ def read_contents_from_dir(dir_p):
         lines=reduce(lambda x,y: x+y,lines_list)
         contents.append(lines)
     return contents
-        
+
+
+''' 
+refresh_seconds=0 means to overwrite the file immediately.  
+Otherwise, overwrite it only if the modification time from today is larger than the refresh_days
+'''
+def write_to_local(p, content, refresh_seconds=0):
+    if is_path_exist(p):
+        if refresh_seconds>0:
+            modified_dt=convert_s_to_date(get_file_modified_time(p), format="%a %b %d %H:%M:%S %Y")
+            modified_dt_plus_refresh = add_seconds_to_datetime(modified_dt, refresh_seconds)
+            now=get_time_now()
+            if now < modified_dt_plus_refresh:
+                return
+    d=get_dir(p)
+    ensure_dir_exists(d, create_multiple=True)
+    f = open(p,'w')
+    f.write(content)
+    f.close()
+
 ##html part ########################################
 def enclose_tag (htm, tag):
     return '<%s>%s</%s>'%(tag, htm, tag) 
