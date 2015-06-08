@@ -39,6 +39,12 @@ def get_base_url(url):
 def get_path_url(url):
 	return urlsplit(url).path
 
+def get_leaf(url):
+	if '/' in url:
+		return url[url.rindex('/')+1:]
+	else:
+		return url
+
 def local_path_append(p1, p2):
 	if p1[-1:] == '/':
 		p1=p1[0:len(p1)-1]

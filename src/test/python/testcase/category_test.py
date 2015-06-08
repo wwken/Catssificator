@@ -88,13 +88,15 @@ class CategoryTest(unittest.TestCase):
 				
 		suggestions = self._category.suggest_categories("mobile p")
 		self.assertGreater(len(suggestions['suggestions']), 5)	#make sure it returns more than 5 results
-		suggestions = self._category.suggest_categories("mobile phone")
-		self.assertGreater(len(suggestions['suggestions']), 5)	#make sure it returns more than 5 results
+		
 		suggestions = self._category.suggest_categories("fuxk TOYS")
 		self.assertEqual(len(suggestions['suggestions']), 0)	#make sure it returns nothing
 		
-    
-    
+	def test_category_suggestion_accuracy(self):
+		debug()
+		suggestions = self._category.suggest_categories("mobile phone")
+		self.assertEqual(len(suggestions['suggestions']), 1)    #make sure it just matches on category
+	
 	def tearDown(self):
 		pass
 		#Config.Instance().set_mode('dev')

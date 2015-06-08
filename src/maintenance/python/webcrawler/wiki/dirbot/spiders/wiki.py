@@ -26,10 +26,12 @@ from scrapy import log
 from os.path import abspath, join, dirname
 import sys
 sys.path.insert(0, join(abspath(dirname('__file__')), './../'))
-from common.utils_webcrawler import get_text_from_xpath_element,get_base_url,get_path_url,local_path_append
+from common.utils_webcrawler import get_text_from_xpath_element,get_base_url,get_path_url,local_path_append,get_leaf
 
 sys.path.insert(0, join(abspath(dirname('__file__')), './../../../../../src/main/python/'))
 from lib.utils import debug,ensure_dir_exists,write_to_local,is_path_exist,convert_s_to_date,get_file_modified_time,add_seconds_to_datetime,get_time_now
+from lib.config import Config
+from backend.category import Category
 
 import sys
 from urlparse import urljoin
@@ -50,6 +52,11 @@ INTERNAL_DELIMILER='--->'
 
 ensure_dir_exists(LOCAL_DIR, create_multiple=True)
 
+Config.Instance().set_mode('prod')
+cat_dir=join(abspath(dirname('__file__')), '../../../../../config/')
+cat_file = cat_dir +'category-production.txt'
+Category.Instance().set_path(cat_file)
+
 class WikiSpider(Spider):
     name = "wiki"
     allowed_domains = ["wikipedia.org"]
@@ -64,8 +71,18 @@ class WikiSpider(Spider):
         sites = sel.xpath('//div[@id="mw-content-text"]/p')
         items = []
         this_url=response._url
-        
+        cur_body = response.request._body
         for site in sites[:1]:
+            
+            '''First see if this page is in any cateory
+            '''
+            leaf_token=get_leaf(this_url)
+            
+            sug_catgories = Category.Instance().suggest_categories(leaf_token)
+            if sug_catgories['suggestions']:
+                debug()
+                ii=0
+            
             item_names = site.xpath('a/text()').extract()
             item_urls = site.xpath('a/@href').extract()
             parsed_text = get_text_from_xpath_element(site)
@@ -73,8 +90,8 @@ class WikiSpider(Spider):
             base_url=get_base_url(response._url)
             local_path=local_path_append(LOCAL_DIR, get_path_url(response._url))
             write_to_local(local_path, response._body, refresh_seconds=NUM_OF_SECONDS_TO_REFRESH_NEW_FILE)
-            debug()
-            this_body = response.request._body+INTERNAL_DELIMILER+get_path_url(response._url)
+            
+            this_body = cur_body+INTERNAL_DELIMILER+get_path_url(response._url)
             for item_url in item_urls:
                 if not self.add_to_dict(item_url):
                     log.msg('EXists - %s!!!' % (item_url),level=log.DEBUG)

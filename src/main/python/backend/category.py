@@ -23,9 +23,14 @@ from os.path import abspath, join, dirname
 from lib.loggable import Loggable
 from lib.singleton import Singleton
 from lib.config import Config,get_txtCategoryInput_empty_string
-from lib.utils import rindex, real_lines, unescape, debug,get_all_stop_words,does_list_a_all_exist_in_list_b,dumps
+from lib.utils import rindex, real_lines, unescape, debug,get_all_stop_words,does_list_a_all_exist_in_list_b,dumps,stem_word
 from backend.database import SQLDatabase
 import string
+
+# return false: if x is not a category y if len(y)>len(x) and there exists some words after y but not exists in x
+def is_this_q_a_valid_category (candidate_list, target_list):
+    if len(candidate_list) < len(target_list):
+        TO BE CONTINUE
 
 @Singleton
 class Category(Loggable):
@@ -144,13 +149,20 @@ class Category(Loggable):
         q = q.lower()
         q_list=q.split()
         q_list=filter((lambda x: x not in get_all_stop_words() and len(x)>1), q_list)
+        q_list=map((lambda x: stem_word(x)), q_list)    #stem all words
         finished_in_loop=False
         suggested_cat_num_already = {}
         for cat in self._categoryNumToName.items():
             if cat[0] in suggested_cat_num_already:
                 continue
             cat_word_list = filter((lambda x: x not in get_all_stop_words()), cat[1].split())
+            cat_word_list = map((lambda x: stem_word(x)), cat_word_list)    #stem all words
             if does_list_a_all_exist_in_list_b(q_list, cat_word_list, (lambda x, y: x == y[0:len(x)].lower())):
+                #Now i am making sure that this category is valid. 
+                #for example, x is not a category y if len(y)>len(x) and there exists some words after y but not exists in x
+                if not is_this_q_a_valid_category(q_list, cat_word_list):
+                    continue;
+                
                 suggestion = self._create_suggestion_category_item(cat)
                 suggestions.append(suggestion)
                 suggested_cat_num_already[cat[0]]=True
