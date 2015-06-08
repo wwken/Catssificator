@@ -83,18 +83,19 @@ class CategoryTest(unittest.TestCase):
 		suggestions = self._category.suggest_categories("lo and sleep")
 		self.assertEquals(len(suggestions['suggestions']), 5)	#make sure it returns as exactly 5 categories
 		
-		suggestions = self._category.suggest_categories("Suits",limit=10)
-		self.assertEquals(len(suggestions['suggestions']), 10)	#make sure it returns more than 5
-				
+		#debug()
+		suggestions = self._category.suggest_categories("Suits",limit=10, sub_category=False)
+		self.assertEquals(len(suggestions['suggestions']), 2)	#make sure it returns more than 5
+		
 		suggestions = self._category.suggest_categories("mobile p")
-		self.assertGreater(len(suggestions['suggestions']), 5)	#make sure it returns more than 5 results
+		self.assertEqual(len(suggestions['suggestions']), 0)	#make sure it returns more than 5 results
 		
 		suggestions = self._category.suggest_categories("fuxk TOYS")
 		self.assertEqual(len(suggestions['suggestions']), 0)	#make sure it returns nothing
 		
 	def test_category_suggestion_accuracy(self):
-		debug()
-		suggestions = self._category.suggest_categories("mobile phone")
+		#debug()
+		suggestions = self._category.suggest_categories("mobile phone", sub_category=False)
 		self.assertEqual(len(suggestions['suggestions']), 1)    #make sure it just matches on category
 	
 	def tearDown(self):

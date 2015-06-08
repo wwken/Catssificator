@@ -23,14 +23,24 @@ from os.path import abspath, join, dirname
 from lib.loggable import Loggable
 from lib.singleton import Singleton
 from lib.config import Config,get_txtCategoryInput_empty_string
-from lib.utils import rindex, real_lines, unescape, debug,get_all_stop_words,does_list_a_all_exist_in_list_b,dumps,stem_word
+from lib.utils import rindex, real_lines, unescape, debug,get_all_stop_words,does_list_a_all_exist_in_list_b,dumps,stem_word_all,small_captalize_all
 from backend.database import SQLDatabase
 import string
 
 # return false: if x is not a category y if len(y)>len(x) and there exists some words after y but not exists in x
 def is_this_q_a_valid_category (candidate_list, target_list):
-    if len(candidate_list) < len(target_list):
-        TO BE CONTINUE
+    return len(candidate_list) == len(target_list)
+    '''if len(candidate_list) < len(target_list):
+        R = '@#*'
+        t = reduce(lambda x,y: x+' ' + y, target_list)
+        tt = t
+        for w in candidate_list:
+            tt = tt.replace(w, R)
+        ri = tt.rindex(R)+len(R)+1  #plus 1 to prevent a space
+        if len(tt) > ri:
+            return False
+    return True
+    '''
 
 @Singleton
 class Category(Loggable):
@@ -141,7 +151,7 @@ class Category(Loggable):
         #return {'category': category_item[0], 'category-id': category_item[1], 'full-category': full_category}
         return {'value': full_category, 'data': cat_num }
     
-    def suggest_categories(self, q, min_length_of_q=2, limit=10):
+    def suggest_categories(self, q, min_length_of_q=2, limit=10, sub_category=True):
         suggestions = list()
         q_len = len(q)
         if q_len < min_length_of_q or q==get_txtCategoryInput_empty_string():
@@ -149,14 +159,14 @@ class Category(Loggable):
         q = q.lower()
         q_list=q.split()
         q_list=filter((lambda x: x not in get_all_stop_words() and len(x)>1), q_list)
-        q_list=map((lambda x: stem_word(x)), q_list)    #stem all words
+        q_list=small_captalize_all(stem_word_all(q_list))
         finished_in_loop=False
         suggested_cat_num_already = {}
         for cat in self._categoryNumToName.items():
             if cat[0] in suggested_cat_num_already:
                 continue
             cat_word_list = filter((lambda x: x not in get_all_stop_words()), cat[1].split())
-            cat_word_list = map((lambda x: stem_word(x)), cat_word_list)    #stem all words
+            cat_word_list=small_captalize_all(stem_word_all(cat_word_list))
             if does_list_a_all_exist_in_list_b(q_list, cat_word_list, (lambda x, y: x == y[0:len(x)].lower())):
                 #Now i am making sure that this category is valid. 
                 #for example, x is not a category y if len(y)>len(x) and there exists some words after y but not exists in x
@@ -170,14 +180,15 @@ class Category(Loggable):
                     finished_in_loop=True
                     break
                 #Get all sub-categories too
-                sub_categories = self.get_categories(cat[0])
-                for sub_cat in sub_categories:
-                    suggestion = self._create_suggestion_category_item(sub_cat)
-                    suggestions.append(suggestion)
-                    suggested_cat_num_already[sub_cat[0]]=True
-                    if len(suggestions)>=limit:
-                        finished_in_loop=True
-                        break
+                if sub_category:
+                    sub_categories = self.get_categories(cat[0])
+                    for sub_cat in sub_categories:
+                        suggestion = self._create_suggestion_category_item(sub_cat)
+                        suggestions.append(suggestion)
+                        suggested_cat_num_already[sub_cat[0]]=True
+                        if len(suggestions)>=limit:
+                            finished_in_loop=True
+                            break
             if finished_in_loop:
                 break
         

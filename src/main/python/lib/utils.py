@@ -149,6 +149,12 @@ def calculate_two_words_distance(w1, w2):
     dif_count += (len(w2) - len(w1))
     return dif_count
 
+def stem_word_all(l):
+    return map((lambda x: stem_word(x)), l)    #stem all words
+
+def small_captalize_all(l):
+    return map((lambda x: x.lower()), l)    #stem all words
+
 ##Cookie related ########################################
 def remove_non_valid_chars(line):
     if line:

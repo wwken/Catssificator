@@ -78,7 +78,7 @@ class WikiSpider(Spider):
             '''
             leaf_token=get_leaf(this_url)
             
-            sug_catgories = Category.Instance().suggest_categories(leaf_token)
+            sug_catgories = Category.Instance().suggest_categories(leaf_token, sub_category=False)
             if sug_catgories['suggestions']:
                 debug()
                 ii=0
