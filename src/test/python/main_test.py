@@ -28,6 +28,7 @@ from lib.utils import debug
 from backend.database import SQLDatabase
 from backend.category import Category
 from lib.config import Config
+from testcase.utils_test import UtilsTest
 from testcase.category_test import CategoryTest
 from testcase.file_datastore_test import FileDataStoreTest
 from testcase.file_upload_test import FileUploadTest
@@ -62,6 +63,7 @@ def suite():
     _category.set_path(cat_file)
     
     test_suite = unittest.TestSuite()
+    test_suite.addTest(unittest.makeSuite(UtilsTest))
     test_suite.addTest(unittest.makeSuite(CategoryTest))
     test_suite.addTest(unittest.makeSuite(FileDataStoreTest))
     test_suite.addTest(unittest.makeSuite(FileUploadTest))

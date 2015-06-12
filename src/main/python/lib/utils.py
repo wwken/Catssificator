@@ -30,6 +30,7 @@ import operator
 import ntpath
 import hashlib
 import re
+import copy
 from textblob import TextBlob,Word
 from datetime import datetime, timedelta
 from pytz import timezone
@@ -76,7 +77,49 @@ def divide_a_by_b(portion, total, round_to=2):
 def get_percentize(portion, total, round_to=2):
     divide_value = divide_a_by_b(portion, total, round_to)
     return (divide_value * 100.0)
+
+'''
+    This method computes the cross-product of all lists, x:
+    For example, if x has three lists where x1 as [1,2,3] and x2 as [a,b] and x3 as [r,q,s]
+    then it should return:
+    [1,a,r],[1,b,r],[2,a,r],[2,b,r],[3,a,r],[3,b,r]
+    [1,a,q],[1,b,q],[2,a,q],[2,b,q],[3,a,q],[3,b,q]
+    [1,a,s],[1,b,s],[2,a,s],[2,b,s],[3,a,s],[3,b,s]
+'''
+def cross_product_on_all_lists(m):
+    return _cross_product_on_all_lists(m, 0)
+
+def _cross_product_on_all_lists(m, pos):
+    if pos + 1 < len(m):
+        m[pos+1] = cross_product_on_two_lists(m[pos], m[pos+1])
+        return _cross_product_on_all_lists(m, pos+1)
+    else:
+        return m[pos]
+
+def cross_product_on_two_lists(x,y):
+    if not x:
+        return [y]
+    if not y:
+        return [x]
+    r = list()
+    for a in x:
+        for b in y:
+            r.append(combine_two_lists(a,b))
+    return r
+
+def combine_two_lists(a,b):
+    l = copy.deepcopy(a)
+    if not is_list(a):
+       l = list()
+       l.append(a) 
+    if is_list(b):
+        for x in b:
+            l.append(x)
+    else:
+        l.append(b)
+    return l
     
+
 def does_list_a_all_exist_in_list_b(a, b, f):
     for x in a:
         this_x_founded_in_b=False
@@ -123,6 +166,9 @@ def map_keys_to_the_values(values_without_key, keys):
             i+=1
         new_key_value_list.append(obj)
     return new_key_value_list
+
+def is_list(x):
+    return type(x) is list
 
 def is_in_the_list(l, search_item, nth=None):
     index=0
