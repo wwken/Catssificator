@@ -23,7 +23,7 @@ from os.path import abspath, join, dirname
 from lib.loggable import Loggable
 from lib.singleton import Singleton
 from lib.config import Config,get_txtCategoryInput_empty_string
-from lib.utils import rindex, real_lines, unescape, debug,get_all_stop_words,does_list_a_all_exist_in_list_b,dumps,stem_word_all,small_captalize_all,get_hyper,get_hypo
+from lib.utils import rindex, real_lines, unescape, debug,get_all_stop_words,does_list_a_all_exist_in_list_b,dumps,stem_word_all,small_captalize_all,get_hyper,get_hypo,cross_product_on_all_lists,stem_word_all_all
 from backend.database import SQLDatabase
 import string
 
@@ -162,19 +162,29 @@ class Category(Loggable):
         q_list=small_captalize_all(stem_word_all(q_list))
         finished_in_loop=False
         suggested_cat_num_already = {}
+        cross_hyper_lists_on_q = stem_word_all_all(cross_product_on_all_lists(self._create_hyp_data_structure(q_list, get_hyper)))
+        cross_hypo_lists_on_q = stem_word_all_all(cross_product_on_all_lists(self._create_hyp_data_structure(q_list, get_hypo)))
         for cat in self._categoryNumToName.items():
             if cat[0] in suggested_cat_num_already:
                 continue
-            cat_word_list = filter((lambda x: x not in get_all_stop_words()), cat[1].split())
+            cat_word_list = filter((lambda x: x not in get_all_stop_words()), cat[1].replace('_', ' ').split())
             cat_word_list=small_captalize_all(stem_word_all(cat_word_list))
             score = 0
-            if does_list_a_all_exist_in_list_b(q_list, cat_word_list, (lambda x, y: x == y[0:len(x)].lower())):
+            if does_list_a_all_exist_in_list_b(q_list, cat_word_list, compare_two_category_entries):
                 score = 1
             else:
-                hhdict = self._create_hyper_hypo_data_structure(q_list)
-                hyp_list = list()
-                for e in q_list:
-                    hyp_list.append(get_hyper(e))
+                #hhdict = self._create_hyper_hypo_data_structure(q_list)
+                if 'midsiz' in cat_word_list and 'vehicl' in cat_word_list:
+                    print 1
+                for e in cross_hyper_lists_on_q:
+                    if does_list_a_all_exist_in_list_b(e, cat_word_list, compare_two_category_entries):
+                        score = 0.9
+                        break
+                if score == 0:
+                    for e in cross_hypo_lists_on_q:
+                        if does_list_a_all_exist_in_list_b(e, cat_word_list, compare_two_category_entries):
+                            score = 0.8
+                            break
                 print '1'
                 
             if score > 0:
@@ -206,13 +216,14 @@ class Category(Loggable):
         return response_json
         #return dumsuggestions
     
-    def _create_hyper_hypo_data_structure(self, l):
-        d = dict()
-        for e in l:
-            d[e] = dict()
-            d[e]['hyper'] = get_hyper(e)
-            d[e]['hypo'] = get_hypo(e)
-        return d
+    def _create_hyp_data_structure(self, q_list, f):
+        hyp_list = list()
+        for e in q_list:
+            c = f(e)
+            if not c:   #if the result is None, then just append the root word
+                c = e
+            hyp_list.append(c)
+        return hyp_list
     
     def get_category_nums_from_parent(self, parent_category_num):
         #self.debug('get_category_nums_from_parent: %s' % (parent_category_num))
@@ -263,6 +274,9 @@ class Category(Loggable):
     def set_path(self, new_path):
         self._path=new_path
         self.__init__()
+
+def compare_two_category_entries(x,y):
+    return (x == y[0:len(y)].lower())
 
 #the dimension of each map_results is hardcored
 def replace_category_num_with_name(map_results, category_index):

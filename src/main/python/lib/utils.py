@@ -103,8 +103,14 @@ def cross_product_on_two_lists(x,y):
     if not y:
         return [x]
     r = list()
-    for a in x:
-        for b in y:
+    xx = copy.deepcopy(x)
+    yy = copy.deepcopy(y)
+    if not is_list(xx):
+        xx = [xx]
+    if not is_list(yy):
+        yy = [yy]
+    for a in xx:
+        for b in yy:
             r.append(combine_two_lists(a,b))
     return r
 
@@ -195,6 +201,13 @@ def calculate_two_words_distance(w1, w2):
             dif_count += 1
     dif_count += (len(w2) - len(w1))
     return dif_count
+
+def stem_word_all_all(ll):
+    new_l = list()
+    for l1 in ll:
+        l1 = stem_word_all(l1)
+        new_l.append(l1)
+    return new_l
 
 def stem_word_all(l):
     return map((lambda x: stem_word(x)), l)    #stem all words
@@ -384,11 +397,11 @@ def syn_set(s):
 def get_hyper(s):  
     ss = syn_set(s)
     hyper = lambda s: s.hypernyms()  
-    return list(ss[0].closure(hyper)) if ss else None    #just take the first synset as this is the most meaningful
+    return map(lambda x: x._lemma_names[0], list(ss[0].closure(hyper))) if ss else None    #just take the first synset as this is the most meaningful
 def get_hypo(s):
     ss = syn_set(s)
     hypo = lambda s: s.hyponyms()
-    return list(ss[0].closure(hypo)) if ss else None    #just take the first synset as this is the most meaningful
+    return map(lambda x: x._lemma_names[0], list(ss[0].closure(hypo))) if ss else None    #just take the first synset as this is the most meaningful
 
 def get_all_stop_words():
     return STOP_WORDS_DICT
