@@ -6214,7 +6214,7 @@ Vehicles & Parts > Vehicle Parts & Accessories > Watercraft Parts & Accessories 
 Vehicles & Parts > Vehicle Parts & Accessories > Watercraft Parts & Accessories > Watercraft Steering Parts
 Vehicles & Parts > Vehicle Parts & Accessories > Watercraft Parts & Accessories > Watercraft Steering Parts > Watercraft Steering Cables
 Vehicles & Parts > Vehicle Parts & Accessories > Watercraft Parts & Accessories > Watercraft Steering Parts > Watercraft Steering Wheels
-Automotive
+Automobile
 Hybrid_Cars
 Luxury_Cars
 SUVs

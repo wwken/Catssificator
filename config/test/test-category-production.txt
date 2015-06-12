@@ -6217,6 +6217,7 @@ Vehicles & Parts > Vehicle Parts & Accessories > Watercraft Parts & Accessories 
 Automotive
 Hybrid_Cars
 Luxury_Cars
+Midsize_Vehicles
 SUVs
 Business
 Career

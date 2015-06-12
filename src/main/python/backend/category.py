@@ -23,7 +23,7 @@ from os.path import abspath, join, dirname
 from lib.loggable import Loggable
 from lib.singleton import Singleton
 from lib.config import Config,get_txtCategoryInput_empty_string
-from lib.utils import rindex, real_lines, unescape, debug,get_all_stop_words,does_list_a_all_exist_in_list_b,dumps,stem_word_all,small_captalize_all
+from lib.utils import rindex, real_lines, unescape, debug,get_all_stop_words,does_list_a_all_exist_in_list_b,dumps,stem_word_all,small_captalize_all,get_hyper,get_hypo
 from backend.database import SQLDatabase
 import string
 
@@ -167,7 +167,17 @@ class Category(Loggable):
                 continue
             cat_word_list = filter((lambda x: x not in get_all_stop_words()), cat[1].split())
             cat_word_list=small_captalize_all(stem_word_all(cat_word_list))
+            score = 0
             if does_list_a_all_exist_in_list_b(q_list, cat_word_list, (lambda x, y: x == y[0:len(x)].lower())):
+                score = 1
+            else:
+                hhdict = self._create_hyper_hypo_data_structure(q_list)
+                hyp_list = list()
+                for e in q_list:
+                    hyp_list.append(get_hyper(e))
+                print '1'
+                
+            if score > 0:
                 #Now i am making sure that this category is valid. 
                 #for example, x is not a category y if len(y)>len(x) and there exists some words after y but not exists in x
                 if not is_this_q_a_valid_category(q_list, cat_word_list):
@@ -195,6 +205,14 @@ class Category(Loggable):
         response_json = {"query": "Unit", "suggestions": suggestions }
         return response_json
         #return dumsuggestions
+    
+    def _create_hyper_hypo_data_structure(self, l):
+        d = dict()
+        for e in l:
+            d[e] = dict()
+            d[e]['hyper'] = get_hyper(e)
+            d[e]['hypo'] = get_hypo(e)
+        return d
     
     def get_category_nums_from_parent(self, parent_category_num):
         #self.debug('get_category_nums_from_parent: %s' % (parent_category_num))

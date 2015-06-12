@@ -61,13 +61,15 @@ class WikiSpider(Spider):
     name = "wiki"
     allowed_domains = ["wikipedia.org"]
     start_urls = [
-        "http://en.wikipedia.org/wiki/IPhone"
+        #"http://en.wikipedia.org/wiki/IPhone"
+        "http://en.wikipedia.org/wiki/Mid-size"
         #LOCAL_SERVER_DIR+'/wiki/IPhone'
     ]
     _processed_url_dict={}
 
     def parse(self, response):
         sel = Selector(response)
+        this_subject=sel.xpath('//h1[@id="firstHeading"]/text()')[0]._root
         sites = sel.xpath('//div[@id="mw-content-text"]/p')
         items = []
         this_url=response._url
@@ -76,8 +78,8 @@ class WikiSpider(Spider):
             
             '''First see if this page is in any cateory
             '''
-            leaf_token=get_leaf(this_url)
-            
+            leaf_token=this_subject
+            debug()
             sug_catgories = Category.Instance().suggest_categories(leaf_token, sub_category=False)
             if sug_catgories['suggestions']:
                 debug()
@@ -91,7 +93,7 @@ class WikiSpider(Spider):
             local_path=local_path_append(LOCAL_DIR, get_path_url(response._url))
             write_to_local(local_path, response._body, refresh_seconds=NUM_OF_SECONDS_TO_REFRESH_NEW_FILE)
             
-            this_body = cur_body+INTERNAL_DELIMILER+get_path_url(response._url)
+            this_body = cur_body+INTERNAL_DELIMILER+leaf_token
             for item_url in item_urls:
                 if not self.add_to_dict(item_url):
                     log.msg('EXists - %s!!!' % (item_url),level=log.DEBUG)

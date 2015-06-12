@@ -97,6 +97,18 @@ class CategoryTest(unittest.TestCase):
 		#debug()
 		suggestions = self._category.suggest_categories("mobile phone", sub_category=False)
 		self.assertEqual(len(suggestions['suggestions']), 1)    #make sure it just matches on category
+		
+		debug()
+		suggestions = self._category.suggest_categories("Mobile Phones", sub_category=False)
+		self.assertEqual(len(suggestions['suggestions']), 1)    #make sure it just matches on category
+		
+		#This tests for the hypernyms: A is B if A's hypernyms is B
+		
+		suggestions = self._category.suggest_categories("midsize car", sub_category=False) #This should get map to midsize vehicle
+		self.assertEqual(len(suggestions['suggestions']), 1)    #make sure it just matches on category
+		
+		#suggestions = self._category.suggest_categories("luxury vehicle", sub_category=False)
+		#self.assertEqual(len(suggestions['suggestions']), 1)    #make sure it just matches on category
 	
 	def tearDown(self):
 		pass
