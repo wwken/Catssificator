@@ -56,6 +56,15 @@ class UtilsTest(unittest.TestCase):
 		#returned_category_num = SQLDatabase.Instance().select_category(category='Softball')[0][0]
 		#self.assertEqual(returned_category_num, 5555)
 		
+	
+	def test_wiki_words_sum_stats(self):
+		p = 'data/webcrawler/wiki/Erin_Burnett'
+		debug()
+		raw_html = read_lines(p, as_single_line=True)
+		f=wiki_extract_html_contents
+		extracted_html=words_sum_stats(raw_html, f)
+		print extracted_html
+		
 	def tearDown(self):
 		pass
 		#Config.Instance().set_mode('dev')

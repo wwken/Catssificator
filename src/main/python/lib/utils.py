@@ -41,6 +41,10 @@ from os import listdir
 from os.path import abspath, join, dirname, isfile
 from collections import Counter
 from nltk.corpus import wordnet as wn
+from scrapy.selector import Selector
+import xml
+import xml.etree
+import xml.etree.ElementTree as ET
 
 os.environ['TZ'] = 'UTC'
 STOP_WORDS=[u'&', u'i', u'me', u'my', u'myself', u'we', u'our', u'ours', u'ourselves', u'you', u'your', u'yours', u'yourself', u'yourselves', u'he', u'him', u'his', u'himself', u'she', u'her', u'hers', u'herself', u'it', u'its', u'itself', u'they', u'them', u'their', u'theirs', u'themselves', u'what', u'which', u'who', u'whom', u'this', u'that', u'these', u'those', u'am', u'is', u'are', u'was', u'were', u'be', u'been', u'being', u'have', u'has', u'had', u'having', u'do', u'does', u'did', u'doing', u'a', u'an', u'the', u'and', u'but', u'if', u'or', u'because', u'as', u'until', u'while', u'of', u'at', u'by', u'for', u'with', u'about', u'against', u'between', u'into', u'through', u'during', u'before', u'after', u'above', u'below', u'to', u'from', u'up', u'down', u'in', u'out', u'on', u'off', u'over', u'under', u'again', u'further', u'then', u'once', u'here', u'there', u'when', u'where', u'why', u'how', u'all', u'any', u'both', u'each', u'few', u'more', u'most', u'other', u'some', u'such', u'no', u'nor', u'not', u'only', u'own', u'same', u'so', u'than', u'too', u'very', u's', u't', u'can', u'will', u'just', u'don', u'should', u'now']
@@ -177,6 +181,12 @@ def map_keys_to_the_values(values_without_key, keys):
 def is_list(x):
     return type(x) is list
 
+def is_array(o):
+    if is_list(o) or type(o) is tuple:
+        return True
+    else:
+        return False
+
 def is_in_the_list(l, search_item, nth=None):
     index=0
     for item in l:
@@ -303,12 +313,15 @@ def ensure_dir_exists(dir_path, create_multiple=False):
 def is_path_exist(p):
     return os.path.exists(p)
 
-def real_lines(file_path, is_critical=False):
+def read_lines(file_path, is_critical=False, as_single_line=False):
     file = None
     try:
         file = open(file_path, 'r')
         lines = file.readlines()
-        return lines
+        if as_single_line:
+            return reduce(lambda x, y: x+ '' +y, lines)
+        else:
+            return lines
     except:
         errro_str='Failed reading the file: %s' % file_path
         if is_critical:
@@ -330,7 +343,7 @@ def read_contents_from_dir(dir_p):
     onlyfiles = get_files_only_from_dir(dir_p)
     contents = []
     for file in onlyfiles:
-        lines_list=real_lines(dir_p+'/'+file)
+        lines_list=read_lines(dir_p+'/'+file)
         lines=reduce(lambda x,y: x+y,lines_list)
         contents.append(lines)
     return contents
@@ -356,8 +369,31 @@ def write_to_local(p, content, refresh_seconds=0):
 
 ##html part ########################################
 def enclose_tag (htm, tag):
-    return '<%s>%s</%s>'%(tag, htm, tag) 
-        
+    return '<%s>%s</%s>'%(tag, htm, tag)
+
+def remove_tag_bracket(t):
+    s = t
+    bracket_l = index_of(s, '[')
+    bracket_r = index_of(s, ']')
+    if bracket_l and bracket_r:
+        s = s[0:bracket_l-1] + s[bracket_r+1:]
+    return s
+def remove_tag(t):
+    s = ''.join(xml.etree.ElementTree.fromstring(t).itertext())
+    return s
+
+def remove_tags(text):
+    if is_list(text):
+        removed_str = ''
+        for e in text:
+            try:
+                removed_str += remove_tag(e)
+            except:
+                pass
+        return removed_str
+    else:
+        return remove_tag(text)
+
 ##Json part ########################################   
 def get_json_value(json_str, field_name):
     decoded = json.loads(json_str)
@@ -455,6 +491,35 @@ def get_similar_words_with_word_tags(word, deep_level=1):
     ws = map(lambda x: (x, get_word_tag_str(x)), ws)
     return ws
 
+def tokenize(query, remove_punctuation=False):
+    words = query.split( );
+    words = map(lambda x: x.lower().strip(), words)
+    if remove_punctuation:
+        words = map(lambda x: x.replace('(', '').replace(')', '').replace(',', '').replace('.', '').replace('?', ''), words)
+        #now remove the '[xxx]' from the strings
+        words = map(lambda x: remove_tag_bracket(x), words)
+    return words
+
+#it returns all the words count of a given crawler
+# The first parameter is raw_html_doc
+# The second parameter is the customized extract function pointer, for example, wiki_extract_html_contents
+def words_sum_stats(html_doc, extract_function):
+    extracted_html_content = extract_function(html_doc)
+    extracted_raw_text_content = remove_tags(extracted_html_content)
+    tokenize_words = tokenize(extracted_raw_text_content, remove_punctuation=True)
+    removed_stopwords_words=filter((lambda w: not w in get_all_stop_words()), tokenize_words)
+    stemmed_words=stem_all_words(removed_stopwords_words)
+    
+    #Now doing the simple word count statstic
+    d=dict()
+    for w in stemmed_words:
+        if w in d:
+            d[w] = d[w] + 1
+        else:
+            d[w] = 1
+    d = get_sorted_turple_on_dict_by_value(d, reverse_the_result=True)
+    return d
+
 ##Torando package util methods ############################################
 def get_httpfile(httpfile, field):
     value_str = httpfile[field]
@@ -488,11 +553,15 @@ def extract_head_tail_in_bulk(map_results, category_index):
             m[category_index] = extract_head_tail(m[category_index]) 
     return map_results
 
+
 def generate_md5(s):
-    return hashlib.md5(s).hexdigest()
+    if is_array(s):
+        s = u''.join(s).encode('utf-8').strip()
+    m = hashlib.sha224(s).hexdigest()
+    return m
 
 def get_line_and_md5_from_file(f):
-    lines = real_lines(f, is_critical=True)
+    lines = read_lines(f, is_critical=True)
     all_contents_in_one_line = reduce(lambda x,y: x+y, lines)
     return (all_contents_in_one_line, generate_md5(all_contents_in_one_line))
 
@@ -585,5 +654,13 @@ def sqlize_a_value(operator, x):
             return operator + '\'' + x +'\''
     else:
         return str(x)
+
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+Every customized crawler, xxx_extra_html_contents must provide the follow functions to filter out the html docs 
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+def wiki_extract_html_contents(raw_html):
+    extracted = Selector(text=raw_html).xpath('//div[@id="mw-content-text"]/p').extract()
+    return extracted
 
 log = get_logger("Utils") 

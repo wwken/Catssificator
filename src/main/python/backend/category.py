@@ -23,7 +23,7 @@ from os.path import abspath, join, dirname
 from lib.loggable import Loggable
 from lib.singleton import Singleton
 from lib.config import Config,get_txtCategoryInput_empty_string
-from lib.utils import rindex, real_lines, unescape, debug,get_all_stop_words,does_list_a_all_exist_in_list_b,dumps,stem_word_all,small_captalize_all,get_hyper,get_hypo,cross_product_on_all_lists,stem_word_all_all
+from lib.utils import rindex, read_lines, unescape, debug,get_all_stop_words,does_list_a_all_exist_in_list_b,dumps,stem_word_all,small_captalize_all,get_hyper,get_hypo,cross_product_on_all_lists,stem_word_all_all
 from backend.database import SQLDatabase
 import string
 
@@ -57,7 +57,7 @@ class Category(Loggable):
     
     def __init__(self):
         self.info('Initializing Category object at path: %s' % (self._path))
-        lines = real_lines(self._path)
+        lines = read_lines(self._path)
         if lines:
             lines = map(lambda l: l.replace('\n', ''),lines)
             if Config.Instance().get_mode() == 'prod':
@@ -145,11 +145,11 @@ class Category(Loggable):
         return catetory_num in self._all_category_nums_which_has_childs
     
     #category_item will be key-value pairs from the _categoryNameToNum.items()
-    def _create_suggestion_category_item(self, category_item):
+    def _create_suggestion_category_item(self, category_item, score=1.0):
         cat_num=category_item[0]
         full_category = self.get_name(cat_num, full_path=True)
         #return {'category': category_item[0], 'category-id': category_item[1], 'full-category': full_category}
-        return {'value': full_category, 'data': cat_num }
+        return {'value': full_category, 'data': cat_num , 'score': score}
     
     def suggest_categories(self, q, min_length_of_q=2, limit=10, sub_category=True):
         suggestions = list()
@@ -157,13 +157,14 @@ class Category(Loggable):
         if q_len < min_length_of_q or q==get_txtCategoryInput_empty_string():
             return dumps({"query": "Unit", "suggestions": [{"value":"", "data":""}]})
         q = q.lower()
-        q_list=q.split()
-        q_list=filter((lambda x: x not in get_all_stop_words() and len(x)>1), q_list)
-        q_list=small_captalize_all(stem_word_all(q_list))
+        q_list_before_stemmed=q.split()
+        q_list_before_stemmed=filter((lambda x: x not in get_all_stop_words() and len(x)>1), q_list_before_stemmed)
+        q_list_before_stemmed=small_captalize_all(q_list_before_stemmed)
+        q_list=stem_word_all(q_list_before_stemmed)
         finished_in_loop=False
         suggested_cat_num_already = {}
-        cross_hyper_lists_on_q = stem_word_all_all(cross_product_on_all_lists(self._create_hyp_data_structure(q_list, get_hyper)))
-        cross_hypo_lists_on_q = stem_word_all_all(cross_product_on_all_lists(self._create_hyp_data_structure(q_list, get_hypo)))
+        cross_hyper_lists_on_q = stem_word_all_all(cross_product_on_all_lists(self._create_hyp_data_structure(q_list_before_stemmed, get_hyper)))
+        cross_hypo_lists_on_q = stem_word_all_all(cross_product_on_all_lists(self._create_hyp_data_structure(q_list_before_stemmed, get_hypo)))
         for cat in self._categoryNumToName.items():
             if cat[0] in suggested_cat_num_already:
                 continue
@@ -174,8 +175,8 @@ class Category(Loggable):
                 score = 1
             else:
                 #hhdict = self._create_hyper_hypo_data_structure(q_list)
-                if 'midsiz' in cat_word_list and 'vehicl' in cat_word_list:
-                    print 1
+                #if 'luxuri' in cat_word_list:
+                #    print 1
                 for e in cross_hyper_lists_on_q:
                     if does_list_a_all_exist_in_list_b(e, cat_word_list, compare_two_category_entries):
                         score = 0.9
@@ -193,7 +194,7 @@ class Category(Loggable):
                 if not is_this_q_a_valid_category(q_list, cat_word_list):
                     continue;
                 
-                suggestion = self._create_suggestion_category_item(cat)
+                suggestion = self._create_suggestion_category_item(cat, score)
                 suggestions.append(suggestion)
                 suggested_cat_num_already[cat[0]]=True
                 if len(suggestions)>=limit:
@@ -222,6 +223,8 @@ class Category(Loggable):
             c = f(e)
             if not c:   #if the result is None, then just append the root word
                 c = e
+            else:
+                c = filter(lambda x: '_' not in x, c) #here i am doing an optimization: only want the single word (i.e. all more than one word phrase will be filtered out)
             hyp_list.append(c)
         return hyp_list
     

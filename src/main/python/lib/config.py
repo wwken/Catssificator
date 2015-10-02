@@ -21,7 +21,7 @@ from yaml import load
 from lib.loggable import Loggable
 from lib.loggable import Loggable
 from lib.singleton import Singleton
-from lib.utils import get_base, real_lines, debug
+from lib.utils import get_base, read_lines, debug
 from os.path import abspath, join, dirname, isfile
 
 
@@ -98,7 +98,7 @@ class VersionHistory(Loggable):
 
     def _parse(self):
         #self.info("--_version_file:" + self._version_file)
-        lines = real_lines(self._version_file)
+        lines = read_lines(self._version_file)
         firstItem=True
         
         for line in lines:

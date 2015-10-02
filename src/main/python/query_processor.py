@@ -23,7 +23,7 @@ import operator
 from request_ticket_system import RequestTicketSystem
 from backend.datastore_factory import DataStoreFactory
 from lib.loggable import Loggable
-from lib.utils import stem_all_words,dumps,debug,extract_head_tail,get_all_stop_words,get_sorted_turple_on_dict_by_value,get_percentize, enclose_tag,divide_a_by_b
+from lib.utils import stem_all_words,dumps,debug,extract_head_tail,get_all_stop_words,get_sorted_turple_on_dict_by_value,get_percentize, enclose_tag,divide_a_by_b,tokenize
 from backend.category import Category
 from backend.database import SQLDatabase
 from web.constants import JSON_API_Constants
@@ -119,15 +119,10 @@ class QueryProcessor(Loggable):
         return dumps(response_str_list)
     
     def process_query(self, query):
-        tokenize_words = self.tokenize(query)
+        tokenize_words = tokenize(query)
         removed_stopwords_words=filter((lambda w: not w in get_all_stop_words()), tokenize_words)
         stemmed_words=stem_all_words(removed_stopwords_words)
         return stemmed_words
-    
-    def tokenize(self, query):
-        words = query.split( );
-        words = map(lambda x: x.lower().strip(), words)
-        return words
     
     def convert_to_histogram_obj(self, category_score):
         sorted_category_score=get_sorted_turple_on_dict_by_value(category_score, reverse_the_result=True)

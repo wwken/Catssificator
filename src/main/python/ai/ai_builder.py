@@ -18,7 +18,7 @@
 # Author: Ken Wu
 # Date: 2014 Dec - 2015
 import collections
-from lib.utils import debug, real_lines,get_file_name_from_path,get_line_and_md5_from_file, words,get_datetime, sentences
+from lib.utils import debug,get_file_name_from_path,get_line_and_md5_from_file, words,get_datetime, sentences
 from lib.singleton import Singleton
 from lib.loggable import Loggable 
 from ai.ai_base import AIBase,AI_DB_Constants

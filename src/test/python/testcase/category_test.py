@@ -106,6 +106,12 @@ class CategoryTest(unittest.TestCase):
 		suggestions = self._category.suggest_categories("midsize car", sub_category=False) #This should get map to midsize vehicle
 		self.assertEqual(len(suggestions['suggestions']), 1)    #make sure it just matches on category
 		
+		#debug()
+		suggestions = self._category.suggest_categories("luxury vehicle", sub_category=False) #This should get map to midsize vehicle
+		self.assertEqual(len(suggestions['suggestions']), 1)    #make sure it just matches on category
+		self.assertEqual(suggestions['suggestions'][0]['value'], 'Luxury_Cars')
+		self.assertLessEqual(suggestions['suggestions'][0]['score'], 0.8)
+		
 		#suggestions = self._category.suggest_categories("luxury vehicle", sub_category=False)
 		#self.assertEqual(len(suggestions['suggestions']), 1)    #make sure it just matches on category
 	

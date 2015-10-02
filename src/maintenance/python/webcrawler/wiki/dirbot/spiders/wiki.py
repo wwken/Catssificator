@@ -29,7 +29,7 @@ sys.path.insert(0, join(abspath(dirname('__file__')), './../'))
 from common.utils_webcrawler import get_text_from_xpath_element,get_base_url,get_path_url,local_path_append,get_leaf
 
 sys.path.insert(0, join(abspath(dirname('__file__')), './../../../../../src/main/python/'))
-from lib.utils import debug,ensure_dir_exists,write_to_local,is_path_exist,convert_s_to_date,get_file_modified_time,add_seconds_to_datetime,get_time_now
+from lib.utils import debug,ensure_dir_exists,write_to_local,is_path_exist,convert_s_to_date,get_file_modified_time,add_seconds_to_datetime,get_time_now,generate_md5
 from lib.config import Config
 from backend.category import Category
 
@@ -45,6 +45,7 @@ ORIGIN_URL_DIR= 'http://en.wikipedia.org'
 NUM_OF_SECONDS_TO_REFRESH_NEW_FILE = 60*60*24*30    #which gives a month of expiration 
 
 INTERNAL_DELIMILER='--->'
+UPPER_EXTRACT_LIMIT = 3
 
 ''''''''''''''''''''''''''''''''''''''''''''
 '''Configuration stuffs ends here '''
@@ -61,11 +62,12 @@ class WikiSpider(Spider):
     name = "wiki"
     allowed_domains = ["wikipedia.org"]
     start_urls = [
-        #"http://en.wikipedia.org/wiki/IPhone"
-        "http://en.wikipedia.org/wiki/Mid-size"
+        "http://en.wikipedia.org/wiki/IPhone"
+        #"http://en.wikipedia.org/wiki/Mid-size"
         #LOCAL_SERVER_DIR+'/wiki/IPhone'
     ]
     _processed_url_dict={}
+    _item_dicts={}
 
     def parse(self, response):
         sel = Selector(response)
@@ -74,18 +76,23 @@ class WikiSpider(Spider):
         items = []
         this_url=response._url
         cur_body = response.request._body
-        for site in sites[:1]:
+        for site in sites[:UPPER_EXTRACT_LIMIT]:
             
             '''First see if this page is in any cateory
             '''
             leaf_token=this_subject
-            debug()
-            sug_catgories = Category.Instance().suggest_categories(leaf_token, sub_category=False)
-            if sug_catgories['suggestions']:
+            #sug_catgories = Category.Instance().suggest_categories(leaf_token, sub_category=False)
+            #if sug_catgories['suggestions']:
+            #    ii=0
+            
+            if len(self._item_dicts) % 50 == 0 and len(self._item_dicts) > 49:
                 debug()
-                ii=0
+                log.msg('content of the dictionary:: %s' %(self.get('iPhone')))
             
             item_names = site.xpath('a/text()').extract()
+            #log.msg('Now processing: %s' %(leaf_token))
+            self.insert_item_names(leaf_token, item_names)
+            
             item_urls = site.xpath('a/@href').extract()
             parsed_text = get_text_from_xpath_element(site)
             this_url=response._url
@@ -112,15 +119,38 @@ class WikiSpider(Spider):
                     body=this_body
                     )
             #item['description'] = '???'
+        
         #return
         #return items
-        
+    
+    def get(self, name):
+        if name in self._item_dicts:
+            return self._item_dicts[name]
+        else:
+            return ''
+    
     def add_to_dict(self, u):
         if not self._exist_in_dict(u):
             self._processed_url_dict[u] = 1
             return True
         else:
             return False
+    
+    #This method add a list of item_names in to the dictionary
+    def insert_item_names (self, leaf_token, item_names):
+        if not item_names:
+            return
+        if leaf_token not in self._item_dicts:
+            self._item_dicts[leaf_token] = []
+        h = generate_md5(item_names)
+        #make sure i did not store it before
+        for k in self._item_dicts[leaf_token]:
+            t_h = k[0]
+            if h == t_h:
+                log.msg('This row has been inserted before - %s !!!' % (item_names),level=log.DEBUG)
+                return
+        content = (h, set(item_names))
+        self._item_dicts[leaf_token].append(content)
     
     def _exist_in_dict(self, u):
         return u in self._processed_url_dict
@@ -140,4 +170,4 @@ class WikiSpider(Spider):
     
     def closed(self, reason):
         log(self._processed_url_dict, level=log.INFO)
-        log(len(self._processed_url_dict), level=log.INFO)
+        #log(len(self._processed_url_dict), level=log.INFO)
